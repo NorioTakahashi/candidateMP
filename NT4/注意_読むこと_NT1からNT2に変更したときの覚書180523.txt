@@ -1,0 +1,18 @@
+
+NT1 -> NT2 に変更したときの覚書
+
+May 23, 2018 by norio
+
+NT1のctrlファイルの読み込みは
+
+  !!ad_comm::change_datafile_name("NT1_ver0_ctrl.dat"); // set parameter values for MP
+
+でやっているので（注意!!!!：このファイル名はmycontrol*.datのMP実行を指定する行の
+ファイル名と一致していないといけない）
+
+NT2でctrlを"NT2_ctrl.dat"として読み込むためには
+
+  !!ad_comm::change_datafile_name("NT2_ctrl.dat"); // set parameter values for MP
+
+とソースコードを変更しておかないといけない。
+

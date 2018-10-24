@@ -1,0 +1,103 @@
+#if !defined(_NT4_)
+#  define _NT4_
+
+class model_data : public ad_comm{
+  data_number ssb_pop_target;
+  data_int t_pop;
+  data_int tune_year;
+  data_number k1_cpue;
+  data_number k2_cpue;
+  data_int t1_cpue;
+  data_number k3_cpue;
+  data_number k4_cpue;
+  data_int t2_cpue;
+  data_number k1_gt_limit;
+  data_int t_gt_limit;
+  data_number n_age2_limit;
+  data_int swit_cpue;
+  data_int swit_gt_limit;
+  data_number max_change_up;
+  data_number max_change_down;
+  data_number min_change;
+  data_int debug_write;
+  int first_cpue_yr;
+  int last_cpue_yr;
+  data_vector hist_cpue;
+  data_int first_yr;
+  data_int last_yr;
+  data_int implementation_yr;
+  data_int current_yr;
+  data_vector quota;
+  data_vector proj_cpuen;
+  data_vector proj_cpueb;
+  data_vector proj_asurv;
+  data_vector proj_gtn;
+  data_vector proj_cvgtn;
+  data_vector proj_gtrec;
+  data_int nPOPdat;
+  data_imatrix POPproj;
+  data_int nPOPdat2;
+  data_imatrix POPhist;
+  dvector obs_cpue;
+  dvector obs_gtn;
+  dvector obs_cvgtn;
+  dvector obs_gtrec;
+  dvector yrs;
+  dvector POPind;
+  dmatrix Mja;
+  dmatrix Rja;
+  dmatrix wja;
+  ~model_data();
+  model_data(int argc,char * argv[]);
+  friend class model_parameters;
+};
+
+class model_parameters : public model_data ,
+  public function_minimizer
+{
+public:
+  ~model_parameters();
+  void preliminary_calculations(void);
+  void set_runtime(void);
+  virtual void * mycast(void) {return (void*)this;}
+  static int mc_phase(void)
+  {
+    return initial_params::mc_phase;
+  }
+  static int mceval_phase(void)
+  {
+    return initial_params::mceval_phase;
+  }
+  static int sd_phase(void)
+  {
+    return initial_params::sd_phase;
+  }
+  static int current_phase(void)
+  {
+    return initial_params::current_phase;
+  }
+  static int last_phase(void)
+  {
+    return (initial_params::current_phase
+      >=initial_params::max_number_phases);
+  }
+  static prevariable current_feval(void)
+  {
+    return *objective_function_value::pobjfun;
+  }
+private:
+  ivector integer_control_flags;
+  dvector double_control_flags;
+  param_number prior_function_value;
+  param_number likelihood_function_value;
+  objective_function_value f;
+public:
+  virtual void userfunction(void);
+  virtual void report(const dvector& gradients);
+  virtual void final_calcs(void);
+  model_parameters(int sz,int argc, char * argv[]);
+  virtual void initializationfunction(void){}
+ void DebugWrite1(double slope_cpue, double mu_gt, double mu_pop);
+
+};
+#endif
