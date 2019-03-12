@@ -1,0 +1,7 @@
+# .gitignore
+
+# unnecessary files
+NT4/*.cpp
+NT4/*.obj
+NT4/*.exe
+NT4/*.htp
