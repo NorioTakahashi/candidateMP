@@ -1,73 +1,52 @@
 // Management Procedure Simple "NT4" modified from "NT3" and "NT2" (based on "NT1") code
 //
 // by norio takahashi
-// start  : Apr  04, 2018
-// end    : May  11, 2018
-// revised: May  18, 2018 - change_datafile_name was changed f/ "NT1_ver0_ctrl.dat" to "NT1_ctrl.dat"
-//        : May  22, 2018 - additional GT data and new CKMR (POP) data input f/ associated files
-//                        - fixed estimated GT N(age2) abundance and CV
-//        : May  22-23, 2018 - added CKMR (POP) HCR part referring to Rich's MP code
-//        : May  31, 2018 - corrected GT N(age2) abundance estimate (f/ Ann's e-mail 180531)
-//        : Jul  04, 2018 - modified to "NT3"
-//        : Jul  26, 2018 - modified to "NT4", just added tuning year's condition to "NT3"
+// start  : Apr  04, 2018 (as "NT1")
+// end    : Jul  26, 2018 - modified to "NT4", just added tuning year's condition to "NT3"
 //
 //
 DATA_SECTION
   !!ad_comm::change_datafile_name("NT4_ctrl.dat"); // set parameter values for MP
   // POP target part parameters
-  init_number ssb_pop_target  // target value of SSB comparable to POP index
-  init_int    t_pop           // number of years over which POP indices (SSB) are averaged
+  init_number    ssb_pop_target  // target value of SSB comparable to POP index
+  init_int            t_pop                 // number of years over which POP indices (SSB) are averaged
 
-  init_int  tune_year // tuning year
+  init_int    tune_year  // tuning year
 
   // average POP <= target POP case
-  init_number k1_cpue  // gain parameter when cpue slope < 0 (decrease)
-  init_number k2_cpue  // gain parameter when cpue slope >= 0 (increase)
-  init_int    t1_cpue   // number of years over which slope of CPUEs(age4+) is estimated
+  init_number    k1_cpue  // gain parameter when cpue slope < 0 (decrease)
+  init_number    k2_cpue  // gain parameter when cpue slope >= 0 (increase)
+  init_int            t1_cpue  // number of years over which slope of CPUEs(age4+) is estimated
 
   // average POP > target POP case
-  init_number k3_cpue  // gain parameter when cpue slope < 0 (decrease)
-  init_number k4_cpue  // gain parameter when cpue slope >= 0 (increase)
-  init_int    t2_cpue   // number of years over which slope of CPUEs(age4+) is estimated
+  init_number    k3_cpue  // gain parameter when cpue slope < 0 (decrease)
+  init_number    k4_cpue  // gain parameter when cpue slope >= 0 (increase)
+  init_int            t2_cpue   // number of years over which slope of CPUEs(age4+) is estimated
 
   // GT(age2) part parameters
-  // (1) used as limit
-  init_number k1_gt_limit   // smoothing parameter when delta_gt_limit < 1
-  init_int    t_gt_limit    // number of years over which GT estimates(age2) are averaged
-  init_number n_age2_limit  // limit value of number of age 2 fish
-
-//  // (2) used as slope
-//  init_number k1_gt  // gain parameter when GT slope < 0 (decrease)
-//  init_number k2_gt  // gain parameter when GT slope >= 0 (increase)
-//  init_int    t_gt   // number of years over which slope of GT estimates(age2) is estimated
-
-//  // POP target part parameters
-//  init_number k1_pop_target   // gain parameter when POP index > ssb target (decrease)
-//  init_number k2_pop_target   // gain parameter when POP index <= ssb target (increase)
-//  init_number ssb_pop_target  // target value of SSB comparable to POP index
-//  init_int    t_pop           // number of years over which POP indices (SSB) are averaged
+  // used as limit
+  init_number    k1_gt_limit     // smoothing parameter when delta_gt_limit < 1
+  init_int            t_gt_limit        // number of years over which GT estimates(age2) are averaged
+  init_number    n_age2_limit  // limit value of number of age 2 fish
 
   // switch for which TAC from parts of HCR is used
-  init_int    swit_cpue       // switch for TAC from cpue slope part of HCR is used
+  init_int    swit_cpue        // switch for TAC from cpue slope part of HCR is used
   init_int    swit_gt_limit   // switch for TAC from GT limit part of HCR is used
-//  init_int    swit_gt         // switch for TAC from GT slope part of HCR is used
-//  init_int    swit_pop        // switch for TAC from POP target part of HCR is used
 
-  init_number max_change_up    // maximum TAC increase
-  init_number max_change_down  // maximum TAC decrease
-  init_number min_change       // minimum TAC increase
+  init_number    max_change_up       // maximum TAC increase
+  init_number    max_change_down  // maximum TAC decrease
+  init_number    min_change             // minimum TAC increase
 
-  init_int debug_write      // debug write? yes = 1, no = 0
+  init_int    debug_write  // debug write? yes = 1, no = 0
 
 
-  int first_cpue_yr   // first year of historical cpue data
-  int last_cpue_yr    // last year of historical cpue data
+  int    first_cpue_yr   // first year of historical cpue data
+  int    last_cpue_yr    // last year of historical cpue data
 
   !!first_cpue_yr = 1969;
   !!last_cpue_yr = 2016;
 
-  init_vector hist_cpue(first_cpue_yr,last_cpue_yr)      // historical age4+ cpue
-  //init_vector hist_cpue_rec(first_cpue_yr,last_data)  // historical age4 cpue
+  init_vector    hist_cpue(first_cpue_yr,last_cpue_yr)  // historical age4+ cpue
 
   // we now change files to get simulated data from sbtOMdata file(cpoied from Rich's test code)
   !!ad_comm::change_datafile_name("sbtOMdata");
