@@ -4,6 +4,12 @@
 // start  : Apr  04, 2018 (as "NT1")
 // end    : Jul  26, 2018 - modified to "NT4", just added tuning year's condition to "NT3"
 //
+// This MP utilizes the code developed by Rich Hillary (CSIRO) for the empirical POP index based on CKMR data.
+// The original source code is "C1GT1CK1a.tpl" ptovided by Rich on 180522.
+// See the following references about the empirical POP index:
+// Hillary R, Preece A, Davies C (2016) Methods for data generation in projections.
+// CCSBT-OMMP/1609/07 (CCSBT-ESC/1609/BGD06, CCSBT-OMMP/1806/BGD01)
+//
 //
 DATA_SECTION
   !!ad_comm::change_datafile_name("NT4_ctrl.dat"); // set parameter values for MP
@@ -129,6 +135,7 @@ PARAMETER_SECTION
   int a,c,cc,i,y;
   double wsum;
 
+  // initialize vector and matrix variables for POP index calculation
   // (f/ Rich's code)
   POPind.initialize();
   Mja.initialize();
@@ -169,10 +176,10 @@ PARAMETER_SECTION
 
   // CK POP-index (f/ Rich's code)
 
-  int cmin = 2002;
-  int cmax = current_yr-5;
-  int ymin = 2006;
-  int ymax = current_yr;
+  int cmin = 2002;               // min cohort (norio comment)
+  int cmax = current_yr-5;  // max cohort
+  int ymin = 2006;              // min adult capture year
+  int ymax = current_yr;    // max adult capture year
 
   ///////////////
   // POP index //
@@ -226,47 +233,43 @@ PARAMETER_SECTION
 
   mu_pop = muCK;
 
-//  if(mean_pop >  ssb_pop_target) TAC_pop = quota(implementation_yr-1) * (1. + k1_pop_target*delta_wrk);
-//  if(mean_pop <= ssb_pop_target) TAC_pop = quota(implementation_yr-1) * (1. + k2_pop_target*delta_wrk);
-
 
   // ---- calculate average CPUE over most recent years
 
   int yr1, yr2;
 
-  if( mu_pop <= ssb_pop_target ){
+  if(current_yr <= tune_year){
 
     yr1 = current_yr-2 - t1_cpue + 1;
     yr2 = current_yr-2;
 
-    slope_cpue = sum( elem_prod( log(obs_cpue(yr1,yr2))-mean(log(obs_cpue(yr1,yr2))), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) ) /
-                 sum( elem_prod( yrs(yr1,yr2)-mean(yrs(yr1,yr2)), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) );
+    slope_cpue = sum( elem_prod( log(obs_cpue(yr1,yr2))-mean(log(obs_cpue(yr1,yr2))), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) ) /sum( elem_prod( yrs(yr1,yr2)-mean(yrs(yr1,yr2)), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) );
 
     k_cpue = slope_cpue < 0 ? k1_cpue : k2_cpue;
 
-  }
-  else if( mu_pop > ssb_pop_target ){
+  }else if(current_yr > tune_year){
 
-    if(current_yr > tune_year){
-      yr1 = current_yr-2 - t2_cpue + 1;
-      yr2 = current_yr-2;
-    }
-    else{
+    if(mu_pop <= ssb_pop_target){
+
       yr1 = current_yr-2 - t1_cpue + 1;
       yr2 = current_yr-2;
-    }
 
-    slope_cpue = sum( elem_prod( log(obs_cpue(yr1,yr2))-mean(log(obs_cpue(yr1,yr2))), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) ) /
-                 sum( elem_prod( yrs(yr1,yr2)-mean(yrs(yr1,yr2)), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) );
+      slope_cpue = sum( elem_prod( log(obs_cpue(yr1,yr2))-mean(log(obs_cpue(yr1,yr2))), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) ) /sum( elem_prod( yrs(yr1,yr2)-mean(yrs(yr1,yr2)), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) );
 
-    if(current_yr > tune_year){
-      k_cpue = slope_cpue < 0 ? k3_cpue : k4_cpue;
-    }
-    else{
       k_cpue = slope_cpue < 0 ? k1_cpue : k2_cpue;
-    }
 
-  }
+    }else if(mu_pop > ssb_pop_target){
+
+      yr1 = current_yr-2 - t2_cpue + 1;
+      yr2 = current_yr-2;
+
+      slope_cpue = sum( elem_prod( log(obs_cpue(yr1,yr2))-mean(log(obs_cpue(yr1,yr2))), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) ) /sum( elem_prod( yrs(yr1,yr2)-mean(yrs(yr1,yr2)), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) );
+
+      k_cpue = slope_cpue < 0 ? k3_cpue : k4_cpue;
+
+    } // end of ssb_pop_target if
+
+  } // end of tune_year if
 
   TAC_cpue = quota(implementation_yr-1) * (1. + k_cpue * slope_cpue);
 
@@ -304,113 +307,6 @@ PARAMETER_SECTION
   flg_gt_limit = mu_gt < n_age2_limit ? 1 : 0;
 
 
-  // (2) used as slope
-
-  // ---- calculate GT slope
-
-  // added based on the code (C1GT2.tpl) provided by Rich
-//  int n = current_yr-2;
-//  int m = current_yr - t_gt - 1 < first_yr-2 ? first_yr-2 : current_yr - t_gt - 1;
-//  m = m < 2016 ? 2016 : m;
-//  double cnt,sum1,sum2;
-//  cnt = sum1 = sum2 = 0.;
-//  // minimum number of years to calculate trend over is 3?
-//  if(n-m > 3) {
-//  		sum1 = sum2 = muGT = mut = 0.;
-//  		for(y=m;y<=n;y++) {
-//
-//  			muGT = obs_gtn(y) != -11. ? muGT+log(obs_gtn(y)) : muGT;
-//			mut = obs_gtn(y) != -11. ? mut+double(y) : mut;
-//			cnt = obs_gtn(y) != -11. ? cnt+1. : cnt;
-//
-//		}
-//
-//		mut /= cnt;
-//		muGT /= cnt;
-//		for(y=m;y<=n;y++) sum1 = obs_gtn(y) != -11. ? sum1+(log(obs_gtn(y))-muGT)*(double(y)-mut) : sum1;
-//		for(y=m;y<=n;y++) sum2 = obs_gtn(y) != -11. ? sum2+(double(y)-mut)*(double(y)-mut) : sum2;
-//		lamGT = sum1/sum2;
-//
-//  }
-//  else lamGT = 0.;
-//
-//  slope_gt = lamGT;
-//
-//  double k_gt = slope_gt <0 ? k1_gt : k2_gt;
-//
-//  TAC_gt = quota(implementation_yr-1) * (1. + k_gt * slope_gt);
-
-
-//  // ---- POP target part of HCR
-//
-//  // CK POP-index (f/ Rich's code)
-//
-//  int cmin = 2002;
-//  int cmax = current_yr-5;
-//  int ymin = 2006;
-//  int ymax = current_yr;
-//
-//  ///////////////
-//  // POP index //
-//  ///////////////
-//
-//  // aggregate across adult capture ages
-//
-//  for(int n=1;n<=nPOPdat2;n++) {
-//
-//     c = POPhist(n,1);
-//     y = POPhist(n,2);
-//     a = POPhist(n,3);
-//     Mja(c,y) += POPhist(n,5);
-//     Rja(c,y) += POPhist(n,4);
-//
-//  }
-//
-//  for(int n=1;n<=nPOPdat;n++) {
-//
-//     c = POPproj(n,1);
-//     y = POPproj(n,2);
-//     a = POPproj(n,3);
-//     Mja(c,y) += POPproj(n,5);
-//     Rja(c,y) += POPproj(n,4);
-//
-//  }
-//
-//  // create the weighting for the index and sum the index
-//
-//  for(c=cmin;c<=cmax;c++) {
-//
-//     wsum = sum(Rja(c));
-//     for(y=ymin;y<=ymax;y++) wja(c,y) = Rja(c,y)/wsum;
-//     for(y=ymin;y<=ymax;y++) {
-//
-//       if(Rja(c,y) > 0) POPind(c) += (Mja(c,y)/Rja(c,y)) * wja(c,y);
-//
-//     }
-//
-//  }
-//
-//  //cout << POPind << endl;
-//
-//  //Iref = sum(POPind(c1,c2))/double(c2-c1+1);
-//  muCK = 0.;
-//  //for(y=cmax-tau3+1;y<=cmax;y++) muCK += POPind(y)/double(tau3);
-//  for(y=cmax-t_pop+1 ;y<=cmax;y++) muCK += POPind(y)/double(t_pop);
-//
-//  //cout << current_yr << " " << Iref << " " << muCK << " " << delCK << " " << delCPUE << " " << delGT << endl;
-//  //cout << current_yr << " " << muCK << " " << endl;
-//
-//
-//  //----calculate ratio of (recent mean POP estimate)/(limit value of POP)
-//
-//  mean_pop = muCK;
-//
-//  delta_wrk = (ssb_pop_target - mean_pop)/mean_pop;
-//
-//  if(mean_pop >  ssb_pop_target) TAC_pop = quota(implementation_yr-1) * (1. + k1_pop_target*delta_wrk);
-//  if(mean_pop <= ssb_pop_target) TAC_pop = quota(implementation_yr-1) * (1. + k2_pop_target*delta_wrk);
-
-
   // ----set TAC
 
   // use TAC from CPUE slope part of HCR only
@@ -429,38 +325,6 @@ PARAMETER_SECTION
     tmp_tac = flg_gt_limit==1 ? min(TAC_gt_limit, TAC_cpue) : TAC_cpue;
 
   }
-
-//  // use TAC from GT slope part of HCR only
-//  if(swit_gt==1 && (swit_cpue+swit_gt_limit+swit_pop)==0) tmp_tac = TAC_gt;
-
-//  // use TAC from GT limit and GT slope parts of HCR only
-//  if(swit_gt_limit==1 && swit_gt==1 && (swit_cpue+swit_pop)==0){
-//
-//    tmp_tac = flg_gt_limit==1 ? min(TAC_gt_limit, TAC_gt) : TAC_gt;
-//
-//  }
-
-//  // use TAC from CPUE slope and GT slope parts of HCR only
-//  if(swit_cpue==1 && swit_gt==1 && (swit_gt_limit+swit_pop)==0) (TAC_cpue + TAC_gt)/2.;
-
-//  // use TAC from POP target part of HCR only
-//  if(swit_pop==1 && (swit_cpue+swit_gt_limit+swit_gt)==0) tmp_tac = TAC_pop;
-
-//  // use TAC from cpue slope, GT limit, and GT slope parts of HCR only
-//  if(swit_cpue==1 && swit_gt_limit==1 && swit_gt==1 && swit_pop==0){
-//
-//    tmp_tac = (TAC_cpue + TAC_gt)/2.;
-//    tmp_tac = flg_gt_limit==1 ? min(TAC_gt_limit, tmp_tac) : tmp_tac;
-//
-//  }
-
-//  // use TAC from cpue slope, GT limit, GT slope, and POP target parts of HCR
-//  if(swit_cpue==1 && swit_gt_limit==1 && swit_gt==1 && swit_pop==1){
-//
-//    tmp_tac = (TAC_cpue + TAC_gt + TAC_pop)/3.;
-//    tmp_tac = flg_gt_limit==1 ? min(TAC_gt_limit, tmp_tac) : tmp_tac;
-//
-//  }
 
 
   tac_change = tmp_tac - quota(implementation_yr-1);
@@ -495,7 +359,6 @@ PARAMETER_SECTION
   //----debug write?
   if(debug_write){
     DebugWrite1(slope_cpue, mu_gt, mu_pop);
-//    DebugWrite1(slope_cpue, mean_gt/n_age2_limit, slope_gt, mean_pop);
   }
 
   exit(1);
@@ -532,19 +395,8 @@ FUNCTION void DebugWrite1(double slope_cpue, double mu_gt, double mu_pop)
   fdebug << "t_gt_limit     = " << t_gt_limit     << endl;
   fdebug << "n_age2_limit   = " << n_age2_limit   << endl;
 
-//  fdebug << "k1_gt        = " << k1_gt        << endl;
-//  fdebug << "k2_gt        = " << k2_gt        << endl;
-//  fdebug << "t_gt         = " << t_gt         << endl;
-
-//  fdebug << "k1_pop_target  = " << k1_pop_target  << endl;
-//  fdebug << "k2_pop_target  = " << k2_pop_target  << endl;
-//  fdebug << "ssb_pop_target = " << ssb_pop_target << endl;
-//  fdebug << "t_pop          = " << t_pop          << endl;
-
   fdebug << "swit_cpue     = " << swit_cpue     << endl;
   fdebug << "swit_gt_limit = " << swit_gt_limit << endl;
-//  fdebug << "swit_gt       = " << swit_gt       << endl;
-//  fdebug << "swit_pop      = " << swit_pop      << endl;
 
   fdebug << "max_change_up   = " << max_change_up   << endl;
   fdebug << "max_change_down = " << max_change_down << endl;
@@ -560,7 +412,6 @@ FUNCTION void DebugWrite1(double slope_cpue, double mu_gt, double mu_pop)
 
 
   fdebug.open("debug_write_cpue_gt.txt", ios::trunc);
-//  fdebug.open("debug_write_cpue_gt_pop.txt", ios::trunc);
 
   fdebug << "---- check values of cpue, GT, GT CV, POP set to variables ----" << endl;
   for(ii = first_cpue_yr; ii <= current_yr-2; ii++){
@@ -592,9 +443,6 @@ FUNCTION void DebugWrite1(double slope_cpue, double mu_gt, double mu_pop)
   fdebug << "  slope_cpue = " << slope_cpue << endl;
   fdebug << "  mu_gt      = " << mu_gt      << endl;
   fdebug << "  mu_pop     = " << mu_pop     << endl;
-//  fdebug << "mean_gt/n_age2_limit = " << ratio_gt_limit << endl;
-//  fdebug << "slope_gt             = " << slope_gt       << endl;
-//  fdebug << "mean_pop             = " << mean_pop       << endl;
   fdebug << endl;
 
   fdebug.close();
