@@ -1,0 +1,100 @@
+# POP target part parameters
+# ssb_pop_target: target value of SSB
+2500000.
+# t_pop: number of years over which POP indices (SSB) are averaged
+3
+# tune_year: tuning year
+2040
+#
+# CPUE(age4+) part parameters
+#
+# average POP <= target POP case
+# k1_cpue: gain parameter when cpue slope < 0 (decrease)
+0.20
+# k2_cpue: gain parameter when cpue slope >= 0 (increase)
+0.33
+#0.30
+# t1_cpue: number of years over which CPUEs(age4+) are averaged
+10
+#
+# average POP > target POP case
+# k3_cpue: gain parameter when cpue slope < 0 (decrease)
+0.10
+# k4_cpue: gain parameter when cpue slope >= 0 (increase)
+3.00
+# t2_cpue: number of years over which CPUEs(age4+) are averaged
+10
+#
+# GT(age2) part parameters
+#
+# (1) used as limit
+# k1_gt_limit: smoothing parameter when delta_gt_limit < 1
+0.75
+# t_gt_limit: number of years over which GT estimates(age2) are averaged
+2
+# n_age2_limit: limit value of number of age 2 fish
+840000.
+#
+# switch for CPUE slope part of HCR (1:on; 0:off)
+1
+# switch for GT limit part of HCR (1:on; 0:off)
+1
+#
+# maximum TAC change (increase)
+3000
+# maximum TAC change (decrease)
+3000
+# minimum TAC change
+500
+# debug write? yes = 1, no = 0
+0
+#
+# historical CPUE (1969-2016) mean of w0.5 and w0.8
+2.3887
+2.3219
+2.1354
+2.1971
+1.8767
+1.9349
+1.4765
+1.8997
+1.6703
+1.4060
+1.2015
+1.3857
+1.3010
+1.0253
+1.0165
+1.0432
+0.8720
+0.6508
+0.6558
+0.5499
+0.5562
+0.6373
+0.5053
+0.5776
+0.8134
+0.9266
+0.8918
+0.7376
+0.6883
+0.6627
+0.6620
+0.6510
+0.7495
+1.0748
+0.7514
+0.7133
+0.5754
+0.3533
+0.2509
+0.5104
+0.6319
+0.8185
+0.7472
+0.9075
+0.7732
+0.9589
+1.1558
+1.0038
