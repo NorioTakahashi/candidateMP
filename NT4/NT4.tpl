@@ -42,6 +42,7 @@ DATA_SECTION
   init_number    max_change_up       // maximum TAC increase
   init_number    max_change_down  // maximum TAC decrease
   init_number    min_change             // minimum TAC increase
+  init_number   maxTAC                   // maximum TAC (for capping TAC)
 
   init_int    debug_write  // debug write? yes = 1, no = 0
 
@@ -50,7 +51,7 @@ DATA_SECTION
   int    last_cpue_yr    // last year of historical cpue data
 
   !!first_cpue_yr = 1969;
-  !!last_cpue_yr = 2016;
+  !!last_cpue_yr = 2018;
 
   init_vector    hist_cpue(first_cpue_yr,last_cpue_yr)  // historical age4+ cpue
 
@@ -157,13 +158,23 @@ PARAMETER_SECTION
     }
 
     // copied Rich's example MP code
-    if(ii == 2016){
-      obs_gtn(ii) = 2417786.; // hard-wired (norio corrected according to Ann's e-mail 180531)
-      obs_cvgtn(ii) = 0.2132; // hard-wired (norio added f/ estimates Excel file)
-      obs_gtrec(ii) = 22.;     // hard-wired
+    if(ii == 2016){  // hard-wired (norio: from GeneTagging_Data_GT2016_update_2019-04-30.xlsx)
+      obs_gtn(ii) = 2271416.;
+      obs_cvgtn(ii) = 0.224;
+      obs_gtrec(ii) = 20.;
+    }
+    if(ii == 2017){  // hard-wired (norio: from GeneTagging2017_Data_2019-04-30.xlsx)
+      obs_gtn(ii) = 1154020.;
+      obs_cvgtn(ii) =  0.122;
+      obs_gtrec(ii) = 67.;
+    }
+    if(ii == 2018){  // assumed for the OMMP10, June 2019
+      obs_gtn(ii) = -11.;
+      obs_cvgtn(ii) =  -11.;
+      obs_gtrec(ii) = 0.;
     }
 
-    if(ii > 2016){
+    if(ii > 2018){
       obs_gtn(ii) = proj_gtn(ii);
       obs_cvgtn(ii) = proj_cvgtn(ii);
       obs_gtrec(ii) = proj_gtrec(ii);
@@ -302,6 +313,8 @@ PARAMETER_SECTION
 
   mu_gt /= cnt;
 
+  mu_gt = mu_gt < 1.e-6? n_age2_limit : mu_gt;  // if mu_gt = 0 then set n_age2_limit to avoid error and set TAC by CPUE only
+
   TAC_gt_limit = quota(implementation_yr-1) * k1_gt_limit * (mu_gt/n_age2_limit)*(mu_gt/n_age2_limit);
 
   flg_gt_limit = mu_gt < n_age2_limit ? 1 : 0;
@@ -350,6 +363,8 @@ PARAMETER_SECTION
 
   }
 
+  if(TAC < 0.) TAC = 0.;
+  if(TAC > maxTAC) TAC = maxTAC;
 
   //----output for sbtproj.exe (copied from Rich's test code
   ofstream ofs("tacfile");
@@ -401,6 +416,7 @@ FUNCTION void DebugWrite1(double slope_cpue, double mu_gt, double mu_pop)
   fdebug << "max_change_up   = " << max_change_up   << endl;
   fdebug << "max_change_down = " << max_change_down << endl;
   fdebug << "min_change      = " << min_change      << endl;
+  fdebug << "maxTAC      = " << maxTAC      << endl;
 
   fdebug << "debug_write  = " << debug_write  << endl;
 
