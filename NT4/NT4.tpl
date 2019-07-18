@@ -15,34 +15,43 @@ DATA_SECTION
   !!ad_comm::change_datafile_name("NT4_ctrl.dat"); // set parameter values for MP
   // POP target part parameters
   init_number    ssb_pop_target  // target value of SSB comparable to POP index
-  init_int            t_pop                 // number of years over which POP indices (SSB) are averaged
+  init_int            t_pop      // number of years over which POP indices (SSB) are averaged
 
   init_int    tune_year  // tuning year
 
   // average POP <= target POP case
   init_number    k1_cpue  // gain parameter when cpue slope < 0 (decrease)
   init_number    k2_cpue  // gain parameter when cpue slope >= 0 (increase)
-  init_int            t1_cpue  // number of years over which slope of CPUEs(age4+) is estimated
+  init_int       t1_cpue  // number of years over which slope of CPUEs(age4+) is estimated
 
   // average POP > target POP case
   init_number    k3_cpue  // gain parameter when cpue slope < 0 (decrease)
   init_number    k4_cpue  // gain parameter when cpue slope >= 0 (increase)
-  init_int            t2_cpue   // number of years over which slope of CPUEs(age4+) is estimated
+  init_int       t2_cpue  // number of years over which slope of CPUEs(age4+) is estimated
 
   // GT(age2) part parameters
   // used as limit
-  init_number    k1_gt_limit     // smoothing parameter when delta_gt_limit < 1
-  init_int            t_gt_limit        // number of years over which GT estimates(age2) are averaged
+  init_number    k1_gt_limit   // smoothing parameter when delta_gt_limit < 1
+  init_int       t_gt_limit    // number of years over which GT estimates(age2) are averaged
   init_number    n_age2_limit  // limit value of number of age 2 fish
 
+  // parameters for continuity parts
+  // for CPUE-based TAC
+  init_number   alpha1
+  init_number   alpha2
+
+  // for final TAC
+  init_number   beta1
+  init_number   beta2
+
   // switch for which TAC from parts of HCR is used
-  init_int    swit_cpue        // switch for TAC from cpue slope part of HCR is used
+  init_int    swit_cpue       // switch for TAC from cpue slope part of HCR is used
   init_int    swit_gt_limit   // switch for TAC from GT limit part of HCR is used
 
-  init_number    max_change_up       // maximum TAC increase
+  init_number    max_change_up    // maximum TAC increase
   init_number    max_change_down  // maximum TAC decrease
-  init_number    min_change             // minimum TAC increase
-  init_number   maxTAC                   // maximum TAC (for capping TAC)
+  init_number    min_change       // minimum TAC increase
+  init_number    maxTAC           // maximum TAC (for capping TAC)
 
   init_int    debug_write  // debug write? yes = 1, no = 0
 
@@ -104,7 +113,7 @@ PARAMETER_SECTION
  LOC_CALCS
 
   // primary variables
-  double  mu_pop;     // average POP index over most recent years
+  double  mu_pop;      // average POP index over most recent years
   double  t_cpue;      // work: number of years over which slope of CPUEs(age4+) is estimated
   double  slope_cpue;  // work: slope of cpue for age4+
   double  k_cpue;      // work: gain parameter for cpue slope
@@ -118,12 +127,14 @@ PARAMETER_SECTION
   double muCK; // f/ Rich's code
 
   double  TAC_cpue;     // TAC by cpue slope
+  double  TAC1_cpue, TAC2_cpue;
+  double  wt_cpue, wt;
   double  TAC_gt_limit; // TAC by GT limit
 //  double  TAC_gt;       // TAC by GT slope
 //  double  TAC_pop;      // TAC by POP/HSP
   double  tmp_tac;      // temporary TAC before constraints
   double  tac_change;   // amount of tac change
-  double  TAC;         // final specified TAC for current year
+  double  TAC;          // final specified TAC for current year
 
 
 //  // for Rich's code
@@ -183,13 +194,11 @@ PARAMETER_SECTION
   }
 
 
-  // ******** CPUE(age4+) slope part of HCR ********
+  // ******** CK POP-index (f/ Rich's code) ********
 
-  // CK POP-index (f/ Rich's code)
-
-  int cmin = 2002;               // min cohort (norio comment)
+  int cmin = 2002;          // min cohort (norio comment)
   int cmax = current_yr-5;  // max cohort
-  int ymin = 2006;              // min adult capture year
+  int ymin = 2006;          // min adult capture year
   int ymax = current_yr;    // max adult capture year
 
   ///////////////
@@ -245,7 +254,7 @@ PARAMETER_SECTION
   mu_pop = muCK;
 
 
-  // ---- calculate average CPUE over most recent years
+  // ******** CPUE(age4+) slope part of HCR ********
 
   int yr1, yr2;
 
@@ -258,9 +267,11 @@ PARAMETER_SECTION
 
     k_cpue = slope_cpue < 0 ? k1_cpue : k2_cpue;
 
+    TAC_cpue = quota(implementation_yr-1) * (1. + k_cpue * slope_cpue);
+
   }else if(current_yr > tune_year){
 
-    if(mu_pop <= ssb_pop_target){
+    if(mu_pop <= (alpha1*ssb_pop_target)){
 
       yr1 = current_yr-2 - t1_cpue + 1;
       yr2 = current_yr-2;
@@ -269,7 +280,9 @@ PARAMETER_SECTION
 
       k_cpue = slope_cpue < 0 ? k1_cpue : k2_cpue;
 
-    }else if(mu_pop > ssb_pop_target){
+      TAC_cpue = quota(implementation_yr-1) * (1. + k_cpue * slope_cpue);
+
+    }else if(mu_pop >= (alpha2*ssb_pop_target)){
 
       yr1 = current_yr-2 - t2_cpue + 1;
       yr2 = current_yr-2;
@@ -278,11 +291,39 @@ PARAMETER_SECTION
 
       k_cpue = slope_cpue < 0 ? k3_cpue : k4_cpue;
 
+      TAC_cpue = quota(implementation_yr-1) * (1. + k_cpue * slope_cpue);
+
+    }else if((alpha1*ssb_pop_target) < mu_pop && mu_pop < (alpha2*ssb_pop_target)){
+
+      // calc TAC1_cpue
+      yr1 = current_yr-2 - t1_cpue + 1;
+      yr2 = current_yr-2;
+
+      slope_cpue = sum( elem_prod( log(obs_cpue(yr1,yr2))-mean(log(obs_cpue(yr1,yr2))), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) ) /sum( elem_prod( yrs(yr1,yr2)-mean(yrs(yr1,yr2)), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) );
+
+      k_cpue = slope_cpue < 0 ? k1_cpue : k2_cpue;
+
+      TAC1_cpue = quota(implementation_yr-1) * (1. + k_cpue * slope_cpue);
+
+      // calc TAC2_cpue
+      yr1 = current_yr-2 - t2_cpue + 1;
+      yr2 = current_yr-2;
+
+      slope_cpue = sum( elem_prod( log(obs_cpue(yr1,yr2))-mean(log(obs_cpue(yr1,yr2))), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) ) /sum( elem_prod( yrs(yr1,yr2)-mean(yrs(yr1,yr2)), yrs(yr1,yr2)-mean(yrs(yr1,yr2)) ) );
+
+      k_cpue = slope_cpue < 0 ? k3_cpue : k4_cpue;
+
+      TAC2_cpue = quota(implementation_yr-1) * (1. + k_cpue * slope_cpue);
+
+      // calc weight
+      wt_cpue = (mu_pop/ssb_pop_target - alpha1)/(alpha2 - alpha1);
+
+      // calc weighted average TAC
+      TAC_cpue = wt_cpue*TAC2_cpue + (1. - wt_cpue)*TAC1_cpue;
+
     } // end of ssb_pop_target if
 
   } // end of tune_year if
-
-  TAC_cpue = quota(implementation_yr-1) * (1. + k_cpue * slope_cpue);
 
 
   // ******** GT(age2) part of HCR ********
@@ -317,11 +358,11 @@ PARAMETER_SECTION
 
   TAC_gt_limit = quota(implementation_yr-1) * k1_gt_limit * (mu_gt/n_age2_limit)*(mu_gt/n_age2_limit);
 
-  flg_gt_limit = mu_gt < n_age2_limit ? 1 : 0;
+  //flg_gt_limit = mu_gt < n_age2_limit ? 1 : 0;
 
 
-  // ----set TAC
-
+  // ******** set TAC ********
+  
   // use TAC from CPUE slope part of HCR only
   if(swit_cpue==1 && swit_gt_limit==0) tmp_tac = TAC_cpue;
 
@@ -335,7 +376,23 @@ PARAMETER_SECTION
   // use TAC from CPUE slope and GT limit parts of HCR
   if(swit_cpue==1 && swit_gt_limit==1){
 
-    tmp_tac = flg_gt_limit==1 ? min(TAC_gt_limit, TAC_cpue) : TAC_cpue;
+    //tmp_tac = flg_gt_limit==1 ? min(TAC_gt_limit, TAC_cpue) : TAC_cpue;
+
+    if(mu_gt <= (beta1*n_age2_limit)){
+
+      tmp_tac = min(TAC_gt_limit, TAC_cpue);
+
+    }else if(mu_gt >= (beta2*n_age2_limit)){
+
+      tmp_tac = TAC_cpue;
+
+    }else if((beta1*n_age2_limit) < mu_gt && mu_gt < (beta2*n_age2_limit)){
+
+      wt = (mu_gt/n_age2_limit - beta1)/(beta2 - beta1);
+
+      tmp_tac = wt*TAC_cpue + (1. - wt)*min(TAC_gt_limit, TAC_cpue);
+      
+    }
 
   }
 
@@ -366,7 +423,7 @@ PARAMETER_SECTION
   if(TAC < 0.) TAC = 0.;
   if(TAC > maxTAC) TAC = maxTAC;
 
-  //----output for sbtproj.exe (copied from Rich's test code
+  //----output for sbtproj.exe (copied from Rich's test code)
   ofstream ofs("tacfile");
   ofs << implementation_yr << " " << TAC << endl;
 
@@ -409,6 +466,11 @@ FUNCTION void DebugWrite1(double slope_cpue, double mu_gt, double mu_pop)
   fdebug << "k1_gt_limit    = " << k1_gt_limit    << endl;
   fdebug << "t_gt_limit     = " << t_gt_limit     << endl;
   fdebug << "n_age2_limit   = " << n_age2_limit   << endl;
+
+  fdebug << "alpha1         = " << alpha1         << endl;
+  fdebug << "alpha2         = " << alpha2         << endl;
+  fdebug << "beta1          = " << beta1          << endl;
+  fdebug << "beta2          = " << beta2          << endl;
 
   fdebug << "swit_cpue     = " << swit_cpue     << endl;
   fdebug << "swit_gt_limit = " << swit_gt_limit << endl;
