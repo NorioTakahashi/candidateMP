@@ -4,7 +4,7 @@
 # t_pop: number of years over which POP indices (SSB) are averaged
 3
 # tune_year: tuning year
-2035
+2040
 #
 # CPUE(age4+) part parameters
 #
@@ -12,7 +12,7 @@
 # k1_cpue: gain parameter when cpue slope < 0 (decrease)
 0.20
 # k2_cpue: gain parameter when cpue slope >= 0 (increase)
-1.21
+0.68
 # t1_cpue: number of years over which CPUEs(age4+) are averaged
 10
 #

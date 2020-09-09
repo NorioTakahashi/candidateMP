@@ -1,0 +1,75 @@
+# Note:  lines that begin with "#" are ignored - but you must separate the
+# inputs by lines as in this example; maximum line length is 80 characters
+# (updated Aug 2017 )
+# name of MP (no spaces allowed)
+NT4
+# name of input parameter files:  a "*.grid" file
+D:/sbtmod_work2019ESC/sbtmod/OM/arc/grids/base18_UAM1
+#name of files for outputs, *.sum, *.s1, *.s2, *.s3, *.s4,*.s5 and *.all
+D:/sbtmod_work2019ESC/proj_res2019ESC/NT4_4000_30_base18
+# directory for batch or executable file, "tacfile", and "sbtOMdata" file
+# leave blank if current directory
+
+# program name that generates "tacfile"; can be a *.bat or *.exe; can have
+# command line arguments
+NT4 -est -nohess -ind NT4_ctrl.dat >t 2>tt
+# the following inputs must all be on one line:
+#   Schedule for catch changes: how often 
+#    1  change TAC every year
+#    2  change TAC every 2 years
+#    3  change TAC every 3 years
+#    0  constant catch since year of first change
+#   then number of years of lag between quota calculation and implementation 
+#   then number of historical replicates:  maximum is 2000 for??
+#   then number of projection replicates per historical replicate;
+#   then number of years simulated;
+#   then value for contant catch if TACschedule =0
+ 3  1 2000 1 32 17647
+# 3  1  2000 1 24 17647
+# 3  1  22 1 15 14647
+# number of years with quota already set (2019-2020) 
+2
+# for each year specify total quota and quota by fishery by catch_splits2016
+18105  10425.82 1266.70 1194.01 5218.60
+17341   9953.80	1233.68 1122.59	5136.78
+# 
+# unACC MORT SENS TESTS multiplier per fishery (1= no additional catch)
+# AddC 1.21 1 1 1.44#SV20 1 1 1 1.2 SV40 1 1 1 1.4 2017:1.14 1 1 1.40
+1.10 1 1 1.39 
+# switch for sbtOMdat outputs; control switch for OM summary data
+1 1
+# tac allocation switch:
+# if 0 = use average of last two years passed by conditioning code
+# if 1 = values hard-wired (based on nominal allocations) 
+# if 2 = values hard-wired (based on nominal allocations except Japan=3000) 
+# through values written into "tacfile")
+1 
+# SWITCH for low recruitments: if >0, reduce recruitment for first n years   
+# then noAC_switch: set to 1 to make rec dev Tau(first_yr-2) uncorrelated to previous 
+# then multiplier for recruitment scenario (i.e. < 1 for low; > 1 for high)
+0  1  1
+# switches for robustness tests highCPUECV, highaerCV and updownq
+# if highCPUECV=1 (set sigmaq=0.30 and sigma_aerial=0.30)
+# if highAerialCV=1 (set sigmaq=0.20 and sigma_aerial=0.50)
+# if updownq = 1 (increase q by 50% for fisrt 5 years)
+# %age value of annual effort creep (default is 0.005)
+# seldrift parameter for LL1 (selrev)
+0  0  0  0.005  0.0
+# control parameters for GT program
+# Trel (relases)
+# Srec (recapture samples scanned)
+# Sadd (additional samples if needed)
+# Rmin (minimum number of recaptures)
+# gtadsw (switch for adaptive sampling given Rmin; 0 off,1 on)
+# qgt (bias level for GAB N2)
+# phigt (over-dispersion level
+# qtrgt (time-trend in GT bias factor)
+5000 10000 5000 5 1 1.0 1.0 0.0 
+# control parameters for CK program
+# Mjuv (juvenile samples)
+# Madu (adult samples)
+# cksw (0/1 off/on switch)
+1000 1000 1
+#version number; this line required exactly as follows
+#the version number will change in future releases
+V1.21
