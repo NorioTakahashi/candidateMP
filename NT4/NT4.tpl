@@ -12,7 +12,7 @@
 //
 //
 DATA_SECTION
-  !!ad_comm::change_datafile_name("NT4_ctrl.dat"); // set parameter values for MP
+//  !!ad_comm::change_datafile_name("NT4_ctrl.dat"); // set parameter values for MP
   // POP target part parameters
   init_number    ssb_pop_target  // target value of SSB comparable to POP index
   init_int            t_pop      // number of years over which POP indices (SSB) are averaged
